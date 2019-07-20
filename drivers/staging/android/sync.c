@@ -165,7 +165,9 @@ static struct sync_fence *sync_fence_alloc(int size, const char *name)
 		goto err;
 
 	kref_init(&fence->kref);
+#ifdef CONFIG_SYNC_DEBUG
 	strlcpy(fence->name, name, sizeof(fence->name));
+#endif
 
 	init_waitqueue_head(&fence->wq);
 
@@ -379,13 +381,17 @@ int sync_fence_wait(struct sync_fence *fence, long timeout)
 	else
 		timeout = msecs_to_jiffies(timeout);
 
+#ifdef CONFIG_SYNC_DEBUG
 	trace_sync_wait(fence, 1);
+#endif
 	for (i = 0; i < fence->num_fences; ++i)
 		trace_sync_pt(fence->cbs[i].sync_pt);
 	ret = wait_event_interruptible_timeout(fence->wq,
 					       atomic_read(&fence->status) <= 0,
 					       timeout);
+#ifdef CONFIG_SYNC_DEBUG
 	trace_sync_wait(fence, 0);
+#endif
 
 	if (ret < 0) {
 		return ret;
@@ -680,7 +686,9 @@ static long sync_fence_ioctl_fence_info(struct sync_fence *fence,
 	if (data == NULL)
 		return -ENOMEM;
 
+#ifdef CONFIG_SYNC_DEBUG
 	strlcpy(data->name, fence->name, sizeof(data->name));
+#endif
 	data->status = atomic_read(&fence->status);
 	if (data->status >= 0)
 		data->status = !data->status;
